@@ -36,26 +36,27 @@ namespace MyFirstProjectAlone.Controllers
             using (SqlConnection con = new SqlConnection(constr))
             {
                 con.Open();
-                using (SqlCommand cmd = new SqlCommand("uspChekEmail"))
+                using (SqlCommand cmd = new SqlCommand("uspChekEmail", con))
                 {
                     cmd.CommandType = CommandType.StoredProcedure;
                     cmd.Parameters.Add("@Email", SqlDbType.NVarChar).Value = registerModel.Email;
                     int result = (int)(cmd.ExecuteScalar() ?? 0);
                     if (result > 0)
                     {
-                        return Ok(false, "Bu email artıq bir dəfə daxil edilib! Yenidən cəhd edin!");
+                        return Ok(false, "Bu email artıq bir dəfə qeydiyyatdan keçib! Yenidən cəhd edin!");
                     }
                 }
-                using (SqlCommand cmd = new SqlCommand("uspRegister"))
+                using (SqlCommand cmd = new SqlCommand("uspRegister", con))
                 {
                     cmd.CommandType = CommandType.StoredProcedure;
                     cmd.Parameters.Add("@FirstName", SqlDbType.NVarChar).Value = registerModel.FirstName;
                     cmd.Parameters.Add("@LastName", SqlDbType.NVarChar).Value = registerModel.LastName;
                     cmd.Parameters.Add("@Email", SqlDbType.NVarChar).Value = registerModel.Email;
                     cmd.Parameters.Add("@Password", SqlDbType.NVarChar).Value = registerModel.Password;
-                    cmd.Parameters.Add("Number", SqlDbType.NVarChar).Value = registerModel.PhoneNumber;
+                    cmd.Parameters.Add("@Number", SqlDbType.NVarChar).Value = registerModel.PhoneNumber;
+                    cmd.Parameters.Add("@Username", SqlDbType.NVarChar).Value = registerModel.Username;
                     var affectedRows = cmd.ExecuteNonQuery();
-                    if (affectedRows > 1)
+                    if (affectedRows > 0)
                     {
                         return Ok(true, "Qeydiyyat uğurludur!");
                     }
@@ -63,6 +64,57 @@ namespace MyFirstProjectAlone.Controllers
                 }
             }
         }
+        [HttpPost]
+        public IHttpActionResult Login(UserModel model)
+        {
+            using (SqlConnection con = new SqlConnection(constr))
+            {
+                int UserID;
+                con.Open();
+                using (SqlCommand cmd = new SqlCommand("uspLogin", con))
+                {
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.Parameters.Add("@Email", SqlDbType.NVarChar).Value = model.Email;
+                    cmd.Parameters.Add("@Password", SqlDbType.NVarChar).Value = model.Password;
+                    UserID = (int)(cmd.ExecuteScalar() ?? 0);
+                    if (UserID < 0)
+                    {
+                        return Ok(false, "Email və parolunuzu birdə yoxlayın!");
+                    }
+                }
+                const string dtFormat = "yyyy-MM-dd HH:mm:ss.fffffff zzz";
+                var now = DateTimeOffset.Now;
+                var expireDate = now.AddMonths(3);
+                string GuidStr = Guid.NewGuid().ToString().ToLower();
+                using (SqlCommand cmd = new SqlCommand("uspInsertUserLogins",con))
+                {
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.Parameters.Add("@UserID", SqlDbType.Int).Value =UserID ;
+                    cmd.Parameters.Add("@Guid", SqlDbType.NVarChar).Value = GuidStr;
+                    cmd.Parameters.Add("@LastLogin", SqlDbType.DateTimeOffset).Value = now.ToString(dtFormat);
+                    cmd.Parameters.Add("@ExpireTime", SqlDbType.DateTimeOffset).Value = expireDate.ToString(dtFormat);
+                    var affectedRows= cmd.ExecuteNonQuery();
+                    if (affectedRows < 1)
+                    {
+                        return Ok(false,"Error,Try it again!");
+                    }
+                }
+
+                var responseMessage = new HttpResponseMessage(HttpStatusCode.OK);
+                var cookie = new CookieHeaderValue(RequiresRoleAttributes.LoginToken, GuidStr);
+
+                cookie.Expires = expireDate;
+                cookie.Domain = Request.RequestUri.Host;
+                cookie.Path = "/";
+                responseMessage.Headers.AddCookies(new[] { cookie });
+
+                var successMsg = new { success = true, message = "Sucessfully logged in" };
+                var param = JsonConvert.SerializeObject(successMsg);
+                responseMessage.Content = new StringContent(param, Encoding.UTF8, "application/json");
+
+                return ResponseMessage(responseMessage);
+            }
+        }
     }
 }
-}
+

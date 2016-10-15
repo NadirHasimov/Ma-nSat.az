@@ -22,6 +22,7 @@ namespace MyFirstProjectAlone.Controllers
     public class CarsController : ApiController
     {
         public const string constr = @"Data Source=(localdb)\ProjectsV13;Initial Catalog=CarDB1;Integrated Security=True;Connect Timeout=30;Encrypt=False;TrustServerCertificate=True;ApplicationIntent=ReadWrite;MultiSubnetFailover=False";
+        public int CurrentUserID{ get; set; }
         public IHttpActionResult Ok(bool scs, string msg)
         {
             return Ok(new
@@ -30,7 +31,7 @@ namespace MyFirstProjectAlone.Controllers
                 message = msg
             });
         }
-        [HttpPost]
+        [HttpPost,ValidateModel]
         public IHttpActionResult Register(UserModel registerModel)
         {
             using (SqlConnection con = new SqlConnection(constr))
@@ -64,7 +65,7 @@ namespace MyFirstProjectAlone.Controllers
                 }
             }
         }
-        [HttpPost]
+        [HttpPost,ValidateModel]
         public IHttpActionResult Login(UserModel model)
         {
             using (SqlConnection con = new SqlConnection(constr))
@@ -77,7 +78,7 @@ namespace MyFirstProjectAlone.Controllers
                     cmd.Parameters.Add("@Email", SqlDbType.NVarChar).Value = model.Email;
                     cmd.Parameters.Add("@Password", SqlDbType.NVarChar).Value = model.Password;
                     UserID = (int)(cmd.ExecuteScalar() ?? 0);
-                    if (UserID < 0)
+                    if (UserID <= 0)
                     {
                         return Ok(false, "Email və parolunuzu birdə yoxlayın!");
                     }
@@ -115,6 +116,7 @@ namespace MyFirstProjectAlone.Controllers
                 return ResponseMessage(responseMessage);
             }
         }
+
     }
 }
 

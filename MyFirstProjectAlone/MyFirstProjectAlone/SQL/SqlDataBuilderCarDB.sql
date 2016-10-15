@@ -157,3 +157,22 @@ begin
 	where [Guid]=@Guid
 end
 go
+create procedure uspUpdateLastLogin
+(
+	@Guid nvarchar(36), @LastLogin datetimeoffset(7)
+)
+as
+begin
+	update UserLogins set LastLogin=@LastLogin where [Guid]=@Guid
+end
+go
+create procedure uspGetUserID
+(
+	@Guid nvarchar(36)
+)
+as
+begin
+	select UserLogins.UserID from UserLogins where Guid=@Guid
+end
+go
+

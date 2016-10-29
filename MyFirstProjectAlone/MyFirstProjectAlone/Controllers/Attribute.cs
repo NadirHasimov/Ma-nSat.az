@@ -21,15 +21,15 @@ namespace MyFirstProjectAlone.Controllers
         Moderator,
         Admin
     }
-    public class RequiresRoleAttributes : ActionFilterAttribute
+    public class RequiresRoleAttribute : ActionFilterAttribute
     {
         public const string LoginToken = "c_user";
         private int roleID;
-        public RequiresRoleAttributes()
+        public RequiresRoleAttribute()
         {
             roleID = 1;
         }
-        public RequiresRoleAttributes(int role)
+        public RequiresRoleAttribute(Roles role)
         {
             roleID = (int)role;
         }
@@ -53,6 +53,7 @@ namespace MyFirstProjectAlone.Controllers
                 using (SqlCommand cmd = new SqlCommand("uspUpdateLastLogin", con))
                 {
                     cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.Parameters.Add("Guid", SqlDbType.NVarChar).Value = guid;
                     cmd.Parameters.Add("@LastLogin", SqlDbType.DateTimeOffset).Value = DateTimeOffset.Now.ToString(dtFormat);
                     var affectedRows = cmd.ExecuteNonQuery();
                     if (affectedRows < 1)
@@ -72,11 +73,11 @@ namespace MyFirstProjectAlone.Controllers
                 string guid = login[LoginToken].Value;
                 if (CheckGuide(guid))
                 {
-                    using (SqlConnection con=new SqlConnection(CarsController.constr))
+                    using (SqlConnection con = new SqlConnection(CarsController.constr))
                     {
                         con.Open();
                         int userID;
-                        using (SqlCommand cmd=new SqlCommand("uspGetUserID", con))
+                        using (SqlCommand cmd = new SqlCommand("uspGetUserID", con))
                         {
                             cmd.CommandType = CommandType.StoredProcedure;
                             cmd.Parameters.Add("@Guid", SqlDbType.NVarChar).Value = guid;
@@ -88,7 +89,7 @@ namespace MyFirstProjectAlone.Controllers
                 }
             }
             var response = new HttpResponseMessage(HttpStatusCode.Unauthorized);
-            actionContext.Response = response;  
+            actionContext.Response = response;
         }
     }
 

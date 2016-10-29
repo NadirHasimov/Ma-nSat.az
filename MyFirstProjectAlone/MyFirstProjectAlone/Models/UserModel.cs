@@ -24,4 +24,4 @@ namespace CarController.Models
         [Required(AllowEmptyStrings = false, ErrorMessage = "Telefon nömrəvizi daxil edin!")]
         public string PhoneNumber { get; set; }
     }
-}
+}   
